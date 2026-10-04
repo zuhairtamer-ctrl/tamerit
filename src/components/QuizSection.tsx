@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { COURSE_UNITS, COURSE_METADATA, QuizQuestion } from '../data/courseData';
+import { COURSE_UNITS, COURSE_METADATA } from '../data/courseData';
+import { BONUS_QUESTIONS } from '../data/bonusQuestions';
 import { 
   GraduationCap, 
   CheckCircle2, 
@@ -13,13 +14,15 @@ import confetti from 'canvas-confetti';
 
 interface QuizSectionProps {
   onOpenCertificate: () => void;
+  onQuizResult?: (score: number, total: number) => void;
 }
 
-export const QuizSection: React.FC<QuizSectionProps> = ({ onOpenCertificate }) => {
-  // Aggregate all quizzes from the 10 units
-  const allQuestions: { unitTitle: string; unitId: number; question: QuizQuestion }[] = COURSE_UNITS.flatMap(u => 
-    u.quiz.map(q => ({ unitTitle: u.title, unitId: u.id, question: q }))
-  );
+export const QuizSection: React.FC<QuizSectionProps> = ({ onOpenCertificate, onQuizResult }) => {
+  // Aggregate the original course questions and scenario-based enrichment questions.
+  const allQuestions = [
+    ...COURSE_UNITS.flatMap(u => u.quiz.map(question => ({ unitTitle: u.title, unitId: u.id, question }))),
+    ...BONUS_QUESTIONS,
+  ];
 
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [submitted, setSubmitted] = useState<boolean>(false);
@@ -46,6 +49,7 @@ export const QuizSection: React.FC<QuizSectionProps> = ({ onOpenCertificate }) =
 
   const handleSubmit = () => {
     setSubmitted(true);
+    onQuizResult?.(score, total);
     if (isPassed) {
       confetti({
         particleCount: 120,
@@ -73,10 +77,10 @@ export const QuizSection: React.FC<QuizSectionProps> = ({ onOpenCertificate }) =
               <span>التقييم الشامل المعتمد للمهارات الرقمية</span>
             </div>
             <h1 className="text-2xl font-black">
-              اختبار الكفاءة الشامل (20 سؤالاً تقييمياً)
+              اختبار الكفاءة الشامل ({total} سؤالاً تقييمياً)
             </h1>
             <p className="text-xs text-red-100 mt-1 max-w-xl">
-              يقيس هذا الاختبار مدى استيعابك للمحاور العشرة بإشراف {COURSE_METADATA.instructor}. اجتياز 70% يؤهلك للحصول على شهادة الإتمام فورياً.
+              يقيس الاختبار فهم المحاور العشرة عبر أسئلة المنهج وتحديات تطبيقية إضافية بإشراف {COURSE_METADATA.instructor}. اجتياز 70% يؤهلك للحصول على شهادة الإتمام.
             </p>
           </div>
 
@@ -157,6 +161,7 @@ export const QuizSection: React.FC<QuizSectionProps> = ({ onOpenCertificate }) =
                 <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
                   المحور {unitId}: {unitTitle}
                 </span>
+                {question.id.startsWith('bonus-') && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-extrabold text-amber-800">تحدٍّ تطبيقي</span>}
 
                 {submitted && (
                   <span className={`flex items-center gap-1 text-xs font-black ${

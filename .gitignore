@@ -1,5 +1,9 @@
 node_modules/
 dist/
 dist-ssr/
+data/*.sqlite3
+__pycache__/
+*.py[cod]
+.pytest_cache/
 *.log
 .DS_Store

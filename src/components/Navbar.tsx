@@ -9,9 +9,12 @@ import {
   BookOpen, 
   Sparkles,
   Share2,
-  CheckCircle2
+  CheckCircle2,
+  LogOut,
+  UserRound
 } from 'lucide-react';
 import { COURSE_METADATA } from '../data/courseData';
+import type { AuthUser } from '../lib/api';
 
 interface NavbarProps {
   currentTab: 'course' | 'pdf' | 'labs' | 'quiz';
@@ -22,6 +25,9 @@ interface NavbarProps {
   totalUnitsCount: number;
   onOpenShortcuts: () => void;
   onOpenCertificate: () => void;
+  currentUser: AuthUser | null;
+  onOpenAuth: () => void;
+  onLogout: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -33,6 +39,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   totalUnitsCount,
   onOpenShortcuts,
   onOpenCertificate,
+  currentUser,
+  onOpenAuth,
+  onLogout,
 }) => {
   const [copied, setCopied] = React.useState(false);
 
@@ -186,6 +195,18 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <Keyboard className="w-4 h-4" />
             </button>
+
+            <div className="flex items-center gap-1">
+              {currentUser && <span className="hidden max-w-20 truncate text-xs font-bold text-slate-600 lg:inline">{currentUser.name.split(' ')[0]}</span>}
+              <button
+                onClick={currentUser ? onLogout : onOpenAuth}
+                title={currentUser ? 'تسجيل الخروج' : 'تسجيل الدخول وحفظ التقدم'}
+                className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-slate-700 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700"
+              >
+                {currentUser ? <LogOut className="h-4 w-4" /> : <UserRound className="h-4 w-4" />}
+                <span className="hidden text-xs font-bold xl:inline">{currentUser ? 'خروج' : 'دخول'}</span>
+              </button>
+            </div>
 
             {/* Print directly as PDF button */}
             <button

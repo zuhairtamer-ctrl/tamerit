@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { COURSE_UNITS, COURSE_METADATA } from './data/courseData';
 import { Navbar } from './components/Navbar';
 import { Sidebar } from './components/Sidebar';
@@ -9,6 +9,9 @@ import { QuizSection } from './components/QuizSection';
 import { CertificateModal } from './components/CertificateModal';
 import { ShortcutsModal } from './components/ShortcutsModal';
 import { VTCLogo } from './components/VTCLogo';
+import { AuthModal } from './components/AuthModal';
+import { LearningDashboard } from './components/LearningDashboard';
+import { getSession, logoutAccount, saveProgress, saveQuizResult, type AuthSession, type AuthUser, type QuizSummary } from './lib/api';
 import { 
   Sparkles, 
   Menu, 
@@ -21,16 +24,104 @@ import {
   Heart
 } from 'lucide-react';
 
+const GUEST_PROGRESS_KEY = 'vtc-digital-skills-guest-progress-v1';
+
+function readGuestProgress(): number[] {
+  try {
+    const value: unknown = JSON.parse(localStorage.getItem(GUEST_PROGRESS_KEY) || '[]');
+    if (!Array.isArray(value)) return [];
+    return [...new Set(value.filter((id): id is number => Number.isInteger(id) && id >= 1 && id <= COURSE_UNITS.length))];
+  } catch {
+    return [];
+  }
+}
+
+function nextUnitId(completedUnitIds: number[]): number {
+  return COURSE_UNITS.find((unit) => !completedUnitIds.includes(unit.id))?.id
+    ?? COURSE_UNITS[COURSE_UNITS.length - 1].id;
+}
+
 export function App() {
   const [currentTab, setCurrentTab] = useState<'course' | 'pdf' | 'labs' | 'quiz'>('course');
   const [activeUnitId, setActiveUnitId] = useState<number>(1);
-  const [completedUnitIds, setCompletedUnitIds] = useState<number[]>([1]);
+  const [completedUnitIds, setCompletedUnitIds] = useState<number[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
   const [isCertificateOpen, setIsCertificateOpen] = useState<boolean>(false);
   const [isShortcutsOpen, setIsShortcutsOpen] = useState<boolean>(false);
+  const [isAuthOpen, setIsAuthOpen] = useState<boolean>(false);
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [latestQuiz, setLatestQuiz] = useState<QuizSummary | null>(null);
+  const [authReady, setAuthReady] = useState<boolean>(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    getSession()
+      .then((session) => {
+        if (cancelled) return;
+        setCurrentUser(session.user);
+        setLatestQuiz(session.latestQuiz);
+        const progress = session.user ? session.completedUnitIds : readGuestProgress();
+        setCompletedUnitIds(progress);
+        setActiveUnitId(nextUnitId(progress));
+      })
+      .catch((error) => {
+        console.warn('Account API is not available; continuing with guest progress.', error);
+        if (!cancelled) {
+          const progress = readGuestProgress();
+          setCompletedUnitIds(progress);
+          setActiveUnitId(nextUnitId(progress));
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setAuthReady(true);
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    if (!authReady) return;
+    if (currentUser) {
+      const timer = window.setTimeout(() => {
+        saveProgress(completedUnitIds).catch((error) => console.warn('Progress could not be saved.', error));
+      }, 250);
+      return () => window.clearTimeout(timer);
+    }
+    try {
+      localStorage.setItem(GUEST_PROGRESS_KEY, JSON.stringify(completedUnitIds));
+    } catch (error) {
+      console.warn('Guest progress could not be stored in this browser.', error);
+    }
+  }, [authReady, completedUnitIds, currentUser]);
 
   const activeUnit = COURSE_UNITS.find(u => u.id === activeUnitId) || COURSE_UNITS[0];
+
+  const handleAuthenticated = (session: AuthSession) => {
+    if (!session.user) return;
+    setCurrentUser(session.user);
+    setCompletedUnitIds(session.completedUnitIds);
+    setActiveUnitId(nextUnitId(session.completedUnitIds));
+    setLatestQuiz(session.latestQuiz);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logoutAccount();
+    } catch (error) {
+      console.warn('Logout request did not complete.', error);
+    }
+    setCurrentUser(null);
+    setCompletedUnitIds([]);
+    setActiveUnitId(1);
+    setLatestQuiz(null);
+  };
+
+  const handleQuizResult = (score: number, total: number) => {
+    if (!currentUser) return;
+    saveQuizResult(score, total)
+      .then(() => setLatestQuiz({ score, total, percentage: Math.round((score / total) * 100), created_at: new Date().toISOString() }))
+      .catch((error) => console.warn('Quiz result could not be saved.', error));
+  };
 
   const handleToggleComplete = (unitId: number) => {
     if (completedUnitIds.includes(unitId)) {
@@ -78,6 +169,9 @@ export function App() {
           totalUnitsCount={COURSE_UNITS.length}
           onOpenShortcuts={() => setIsShortcutsOpen(true)}
           onOpenCertificate={() => setIsCertificateOpen(true)}
+          currentUser={currentUser}
+          onOpenAuth={() => setIsAuthOpen(true)}
+          onLogout={() => { void handleLogout(); }}
         />
       </div>
 
@@ -92,11 +186,23 @@ export function App() {
         </main>
       ) : currentTab === 'quiz' ? (
         <main className="flex-1 py-4">
-          <QuizSection onOpenCertificate={() => setIsCertificateOpen(true)} />
+          <QuizSection onOpenCertificate={() => setIsCertificateOpen(true)} onQuizResult={handleQuizResult} />
         </main>
       ) : (
         /* Course E-learning View with Sidebar & Unit Detail */
-        <div className="flex-1 flex flex-col lg:flex-row max-w-7xl w-full mx-auto">
+        <div className="flex-1 w-full max-w-7xl mx-auto pb-8">
+          <div className="px-4 pt-5 sm:px-6 lg:px-8 lg:pt-7">
+            <LearningDashboard
+              learnerName={currentUser?.name.split(' ')[0]}
+              activeUnitTitle={activeUnit.title}
+              completedUnitsCount={completedUnitIds.length}
+              totalUnitsCount={COURSE_UNITS.length}
+              latestQuiz={latestQuiz}
+              onContinue={() => document.getElementById('course-content')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+              onStartQuiz={() => setCurrentTab('quiz')}
+            />
+          </div>
+          <div id="course-content" className="mt-6 flex flex-col px-4 lg:flex-row sm:px-6 lg:px-8 scroll-mt-28">
           
           {/* Mobile Sidebar Toggle Button */}
           <div className="lg:hidden p-3 bg-white border-b border-slate-200 flex items-center justify-between no-print">
@@ -140,10 +246,17 @@ export function App() {
               hasNext={activeUnitId < COURSE_UNITS.length}
             />
           </main>
+          </div>
         </div>
       )}
 
       {/* Global Modals */}
+      <AuthModal
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
+        onAuthenticated={handleAuthenticated}
+      />
+
       <CertificateModal
         isOpen={isCertificateOpen}
         onClose={() => setIsCertificateOpen(false)}
