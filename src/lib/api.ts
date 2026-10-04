@@ -29,6 +29,9 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {
+    if (response.status === 404 && window.location.hostname.endsWith('github.io')) {
+      throw new Error('نسخة GitHub Pages ثابتة ولا تشغّل خادم الحسابات. يمكنك متابعة التعلّم كضيف؛ ولتسجيل الدخول من أجهزة متعددة يلزم ربط خادم API وقاعدة بيانات دائمة.');
+    }
     throw new Error(body.error || 'تعذر إكمال الطلب. حاول مرة أخرى.');
   }
   return body as T;

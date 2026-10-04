@@ -62,7 +62,7 @@ export const COURSE_UNITS: CourseUnit[] = [
     subtitle: "المفاهيم الجوهرية، الثورة الرقمية، ودور التقنية في رفع الإنتاجية",
     iconName: "MonitorCheck",
     duration: "4 ساعات تدريبية",
-    image: "/images/computer-hardware.jpg",
+    image: `${import.meta.env.BASE_URL}images/computer-hardware.jpg`,
     learningOutcomes: [
       "فهم مفهوم الحاسوب وتطوره التاريخي ودوره في العصر الرقمي الحديث.",
       "استيعاب المزايا التنافسية للحاسوب (السرعة، الدقة، سعة التخزين، والموثوقية).",
@@ -151,7 +151,7 @@ export const COURSE_UNITS: CourseUnit[] = [
     subtitle: "المكونات الداخلية الأساسية في صندوق الحاسوب (System Unit) ووظيفة كل منها",
     iconName: "Cpu",
     duration: "5 ساعات تدريبية",
-    image: "/images/computer-hardware.jpg",
+    image: `${import.meta.env.BASE_URL}images/computer-hardware.jpg`,
     learningOutcomes: [
       "تحديد المكونات الداخلية الأساسية لوحدة النظام واللوحة الأم بدقة.",
       "فهم دور وحدة المعالجة المركزية (CPU) ومواصفاتها القياسية.",
@@ -240,7 +240,7 @@ export const COURSE_UNITS: CourseUnit[] = [
     subtitle: "جسور التواصل بين المستخدم والحاسوب، وآليات تبادل البيانات",
     iconName: "Keyboard",
     duration: "4 ساعات تدريبية",
-    image: "/images/input-output-devices.jpg",
+    image: `${import.meta.env.BASE_URL}images/input-output-devices.jpg`,
     learningOutcomes: [
       "تصنيف الوحدات الطرفية إلى وحدات إدخال، وحدات إخراج، ووحدات مزدوجة.",
       "إتقان التعامل مع وحدات الإدخال الأساسية كلوحة المفاتيح والفأرة والماسح الضوئي.",
@@ -404,7 +404,7 @@ export const COURSE_UNITS: CourseUnit[] = [
     subtitle: "إدارة بيئة العمل، لوحة التحكم، وتخصيص إعدادات النظام للإنتاجية",
     iconName: "Settings",
     duration: "5 ساعات تدريبية",
-    image: "/images/os-desktop.jpg",
+    image: `${import.meta.env.BASE_URL}images/os-desktop.jpg`,
     learningOutcomes: [
       "فهم الوظائف الأساسية لنظام التشغيل كمدير موارد ومنسق عام للحاسوب.",
       "الوصول السريع إلى تطبيق الإعدادات (Settings) ولوحة التحكم (Control Panel).",

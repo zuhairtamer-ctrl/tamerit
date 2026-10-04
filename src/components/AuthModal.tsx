@@ -55,6 +55,11 @@ export function AuthModal({ isOpen, onClose, onAuthenticated }: AuthModalProps) 
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 px-7 py-6" dir="rtl">
+          {window.location.hostname.endsWith('github.io') && (
+            <p role="note" className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-6 text-amber-900">
+              الاستضافة الحالية ثابتة؛ التقدم كضيف يُحفظ في هذا المتصفح، أما الحسابات فتحتاج خادمًا وقاعدة بيانات.
+            </p>
+          )}
           {mode === 'register' && (
             <label className="block space-y-1.5 text-sm font-bold text-slate-700">
               الاسم الكامل
